@@ -1,0 +1,165 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Document ID: userId
+// Fields:
+//   - name: string (required)
+//   - pin: string (required, 4-6 digits)
+//   - role: string (required, 'admin' | 'cashier')
+//   - createdAt: timestamp (required)
+//
+// Collection: ingredients
+// Document ID: ingredientId
+// Fields:
+//   - name: string (required)
+//   - stockLevel: number (required)
+//   - unit: string (required)
+//   - costPerUnit: number (required)
+//   - lowStockThreshold: number (optional)
+//
+// Collection: products
+// Document ID: productId
+// Fields:
+//   - name: string (required)
+//   - category: string (required, 'Coffee' | 'Non-coffee' | 'Pastries')
+//   - basePrice: number (required)
+//   - variations: map (optional, size: price_offset)
+//   - addOns: map (optional, name: price)
+//   - recipe: list of maps (optional, {ingredientId, quantity})
+//
+// Collection: sales
+// Document ID: saleId
+// Fields:
+//   - items: list of maps (required)
+//   - total: number (required)
+//   - discount: number (required)
+//   - paymentMethod: string (required, 'Cash' | 'GCash' | 'Card')
+//   - staffId: string (required)
+//   - timestamp: timestamp (required)
+//   - totalCost: number (required)
+//   - profit: number (required)
+//
+// Collection: shifts
+// Document ID: shiftId
+// Fields:
+//   - staffId: string (required)
+//   - startTime: timestamp (required)
+//   - endTime: timestamp (optional)
+//   - totalSales: number (required)
+//   - status: string (required, 'open' | 'closed')
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (
+          (request.auth.token.email == "jonathaniansoberano@gmail.com" && request.auth.token.email_verified == true) ||
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active')
+        );
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() && 
+        request.auth.token.get('email', '').lower() == "jonathaniansoberano@gmail.com" && 
+        request.auth.token.get('email_verified', false) == true;
+    }
+
+    function isCashier() {
+      return isAuthenticated() &&
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'cashier' &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active');
+    }
+
+    function isStaff() {
+      return isAuthenticated() && (isAdmin() || isCashier());
+    }
+
+    function isOwnerOf(docData) {
+      return isSuperAdmin() || 
+        (isAuthenticated() && docData != null && (
+          (docData.get('ownerId', '') == request.auth.uid) || 
+          (isCashier() && docData.get('ownerId', '') == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ownerId)
+        ));
+    }
+
+    function getOwnerId() {
+      let user = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return user.role == 'admin' ? request.auth.uid : user.ownerId;
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+    
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isSuperAdmin() || isOwner(userId) || (isCashier() && resource.data.ownerId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ownerId));
+      allow create: if isAuthenticated() && (isSuperAdmin() || (isAdmin() && request.resource.data.role == 'cashier' && request.resource.data.ownerId == request.auth.uid));
+      allow update: if isAuthenticated() && (isSuperAdmin() || (isOwner(userId) && request.resource.data.role == resource.data.role));
+      allow delete: if isSuperAdmin();
+    }
+
+    match /ingredients/{ingredientId} {
+      allow read: if isAuthenticated() && isOwnerOf(resource.data);
+      allow create: if isAuthenticated() && (isSuperAdmin() || (isAdmin() && request.resource.data.ownerId == request.auth.uid));
+      allow update: if isAuthenticated() && isOwnerOf(resource.data);
+      allow delete: if isAuthenticated() && isOwnerOf(resource.data);
+    }
+
+    match /products/{productId} {
+      allow read: if isAuthenticated() && isOwnerOf(resource.data);
+      allow create: if isAuthenticated() && (isSuperAdmin() || (isAdmin() && request.resource.data.ownerId == request.auth.uid));
+      allow update: if isAuthenticated() && isOwnerOf(resource.data);
+      allow delete: if isAuthenticated() && isOwnerOf(resource.data);
+    }
+
+    match /categories/{categoryId} {
+      allow read: if isAuthenticated() && (isSuperAdmin() || isOwnerOf(resource.data));
+      allow create: if isAuthenticated() && (isSuperAdmin() || (isAdmin() && request.resource.data.ownerId == request.auth.uid));
+      allow update: if isAuthenticated() && (isSuperAdmin() || isOwnerOf(resource.data));
+      allow delete: if isAuthenticated() && (isSuperAdmin() || isOwnerOf(resource.data));
+    }
+
+    match /sales/{saleId} {
+      allow read: if isAuthenticated() && isOwnerOf(resource.data);
+      allow create: if isAuthenticated() && (isSuperAdmin() || (isStaff() && request.resource.data.ownerId == getOwnerId()));
+      allow update, delete: if isAuthenticated() && isOwnerOf(resource.data) && isAdmin();
+    }
+
+    match /shifts/{shiftId} {
+      allow read: if isAuthenticated() && isOwnerOf(resource.data);
+      allow create: if isAuthenticated() && (isSuperAdmin() || (isStaff() && request.resource.data.ownerId == getOwnerId()));
+      allow update: if isAuthenticated() && isOwnerOf(resource.data);
+      allow delete: if isSuperAdmin();
+    }
+
+    match /pendingOrders/{orderId} {
+      allow read, create, update, delete: if isAuthenticated() && (isSuperAdmin() || (isStaff() && (resource == null || isOwnerOf(resource.data))));
+    }
+
+    // Test collection for connection validation
+    match /test/{docId} {
+      allow read: if isAuthenticated();
+    }
+  }
+}
