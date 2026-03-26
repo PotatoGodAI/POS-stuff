@@ -2200,6 +2200,7 @@ const ProductsView = ({ products, categories, ingredients, sales, currentUser }:
   const [isManagingCategories, setIsManagingCategories] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
 
   // AI Scanning State
   const [isScanning, setIsScanning] = useState(false);
@@ -2248,10 +2249,11 @@ const ProductsView = ({ products, categories, ingredients, sales, currentUser }:
     }
   };
 
-  const handleDeleteProduct = async (id: string) => {
-    // if (!confirm('Are you sure you want to delete this product?')) return;
+  const handleDeleteProduct = async () => {
+    if (!productToDelete) return;
     try {
-      await deleteDoc(doc(db, 'products', id));
+      await deleteDoc(doc(db, 'products', productToDelete));
+      setProductToDelete(null);
     } catch (err) {
       console.error(err);
     }
@@ -2549,6 +2551,40 @@ const ProductsView = ({ products, categories, ingredients, sales, currentUser }:
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Delete Confirmation Modal */}
+        <AnimatePresence>
+          {productToDelete && (
+            <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden p-8 text-center"
+              >
+                <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <Trash2 className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-black text-stone-900 mb-2">Delete Product?</h3>
+                <p className="text-stone-500 mb-8">This action cannot be undone. Are you sure you want to remove this product from your menu?</p>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => setProductToDelete(null)}
+                    className="flex-1 px-6 py-3 rounded-xl font-bold text-stone-500 hover:bg-stone-100 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleDeleteProduct}
+                    className="flex-1 bg-red-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-red-200 hover:bg-red-600 transition-all"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
         {products.map(product => {
           // Calculate cost per unit
           let unitCost = 0;
@@ -2580,7 +2616,7 @@ const ProductsView = ({ products, categories, ingredients, sales, currentUser }:
                     <button onClick={() => startEdit(product)} className="text-stone-400 hover:text-stone-900 transition-colors">
                       <Edit className="w-4 h-4" />
                     </button>
-                    <button onClick={() => handleDeleteProduct(product.id)} className="text-stone-400 hover:text-red-500 transition-colors">
+                    <button onClick={() => setProductToDelete(product.id)} className="text-stone-400 hover:text-red-500 transition-colors">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>

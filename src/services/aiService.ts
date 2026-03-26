@@ -7,8 +7,6 @@ export interface AISuggestion {
 }
 
 export const scanMenuWithAI = async (input: string | File): Promise<AISuggestion[]> => {
-  const apiKey = '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'; 
-  
   let content: any[] = [];
   const prompt = `You are a professional menu digitizer. Your task is to extract ALL categories, products, and prices from the provided menu (image or text).
 
@@ -46,16 +44,12 @@ If multiple sizes are listed like "S: 100, M: 120, L: 140", use 100 as base pric
     });
   }
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  const response = await fetch("/api/scan", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({
-      "model": "google/gemini-3-flash-preview",
-      "messages": [{ "role": "user", "content": content }]
-    })
+    body: JSON.stringify({ content })
   });
 
   if (!response.ok) {
