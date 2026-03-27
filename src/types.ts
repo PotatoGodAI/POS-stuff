@@ -9,6 +9,7 @@ export interface User {
   status: UserStatus;
   isSuperAdmin?: boolean;
   ownerId?: string; // The Admin who owns this account (for cashiers)
+  themeColor?: string;
   createdAt: string;
   lastLogin?: string;
 }
@@ -62,6 +63,7 @@ export interface PendingOrder {
   items: SaleItem[];
   total: number;
   discount: number;
+  customerName?: string;
   staffId: string;
   staffName: string;
   timestamp: string;
@@ -73,6 +75,7 @@ export interface Sale {
   items: SaleItem[];
   total: number;
   discount: number;
+  customerName?: string;
   paymentMethod: 'Cash' | 'GCash' | 'Card';
   staffId: string;
   staffName: string;

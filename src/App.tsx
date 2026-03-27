@@ -35,6 +35,7 @@ import {
   Tag, 
   Percent, 
   ArrowUpRight, 
+  ArrowDownRight,
   ArrowDownLeft, 
   Layers, 
   ClipboardList, 
@@ -43,7 +44,14 @@ import {
   UserCircle,
   Sparkles,
   Upload,
-  Loader2
+  Loader2,
+  Eye,
+  EyeOff,
+  BarChart3,
+  PieChart,
+  Calendar as CalendarIcon,
+  Zap,
+  Target
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -67,7 +75,7 @@ import {
 import { onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
 import { db, auth, googleProvider } from './firebase';
 import { User, Ingredient, Product, Sale, Shift, SaleItem, Role, PendingOrder, UserStatus, Category } from './types';
-import { format, startOfDay, endOfDay, subDays, isWithinInterval } from 'date-fns';
+import { format, startOfDay, endOfDay, subDays, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { scanMenuWithAI, AISuggestion } from './services/aiService';
 
 // --- Error Handling ---
@@ -210,10 +218,10 @@ const GoogleLogin = ({ error: externalError }: { error?: string }) => {
         className="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-stone-200 text-center"
       >
         <div className="flex flex-col items-center mb-10">
-          <div className="w-20 h-20 bg-stone-900 rounded-3xl flex items-center justify-center mb-6 shadow-xl rotate-3 hover:rotate-0 transition-transform duration-300">
+          <div className="w-20 h-20 bg-theme rounded-3xl flex items-center justify-center mb-6 shadow-xl rotate-3 hover:rotate-0 transition-transform duration-300">
             <Coffee className="text-white w-10 h-10" />
           </div>
-          <h1 className="text-3xl font-black text-stone-900 tracking-tight mb-2">BaristaPro POS</h1>
+          <h1 className="text-3xl font-black text-theme tracking-tight mb-2">BaristaPro POS</h1>
           <p className="text-stone-500 font-medium">Professional Coffee Management</p>
         </div>
 
@@ -221,10 +229,10 @@ const GoogleLogin = ({ error: externalError }: { error?: string }) => {
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-4 bg-white border-2 border-stone-200 py-4 px-6 rounded-2xl font-bold text-stone-700 hover:border-stone-900 hover:bg-stone-50 transition-all duration-300 disabled:opacity-50 group"
+            className="w-full flex items-center justify-center gap-4 bg-white border-2 border-stone-200 py-4 px-6 rounded-2xl font-bold text-stone-700 hover:border-theme hover:bg-stone-50 transition-all duration-300 disabled:opacity-50 group"
           >
             {loading ? (
-              <div className="w-6 h-6 border-3 border-stone-300 border-t-stone-900 rounded-full animate-spin" />
+              <div className="w-6 h-6 border-3 border-stone-300 border-t-theme rounded-full animate-spin" />
             ) : (
               <>
                 <svg className="w-6 h-6 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
@@ -285,11 +293,11 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout, isCollapsed, setIsCo
     <motion.div 
       initial={false}
       animate={{ width: isCollapsed ? 80 : 256 }}
-      className="bg-stone-900 h-screen flex flex-col border-r border-stone-800 relative"
+      className="bg-theme h-screen flex flex-col border-r border-theme/90 relative"
     >
       <button 
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-20 bg-stone-900 border border-stone-800 text-white p-1 rounded-full z-10 hover:bg-stone-800 transition-colors"
+        className="absolute -right-3 top-20 bg-theme border border-theme/90 text-white p-1 rounded-full z-10 hover:bg-theme/80 transition-colors"
       >
         {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
       </button>
@@ -301,7 +309,7 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout, isCollapsed, setIsCo
         className={`p-6 flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} hover:opacity-80 transition-opacity cursor-pointer group`}
       >
         <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform flex-shrink-0">
-          <Coffee className="text-stone-900 w-6 h-6" />
+          <Coffee className="text-theme w-6 h-6" />
         </div>
         {!isCollapsed && <span className="font-bold text-white text-lg tracking-tight truncate">BaristaPro</span>}
       </a>
@@ -313,12 +321,12 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout, isCollapsed, setIsCo
             onClick={() => setActiveTab(tab.id)}
             className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-4 px-4'} py-4 rounded-2xl transition-all duration-200 group ${
               activeTab === tab.id 
-                ? 'bg-white text-stone-900 shadow-lg' 
-                : 'text-stone-400 hover:bg-stone-800 hover:text-white'
+                ? 'bg-white text-theme shadow-lg' 
+                : 'text-stone-400 hover:bg-theme/80 hover:text-white'
             }`}
             title={isCollapsed ? tab.label : ''}
           >
-            <tab.icon className={`w-6 h-6 flex-shrink-0 ${activeTab === tab.id ? 'text-stone-900' : 'group-hover:scale-110 transition-transform'}`} />
+            <tab.icon className={`w-6 h-6 flex-shrink-0 ${activeTab === tab.id ? 'text-theme' : 'group-hover:scale-110 transition-transform'}`} />
             {!isCollapsed && <span className="font-semibold truncate">{tab.label}</span>}
           </button>
         ))}
@@ -326,7 +334,7 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout, isCollapsed, setIsCo
 
       <div className="p-4 mt-auto">
         {!isCollapsed && (
-          <div className="bg-stone-800 rounded-2xl p-4 mb-4">
+          <div className="bg-theme/80 rounded-2xl p-4 mb-4">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center flex-shrink-0">
                 <UserIcon className="text-stone-300 w-4 h-4" />
@@ -541,6 +549,25 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false);
   const [loginError, setLoginError] = useState<string | undefined>();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
+
+  useEffect(() => {
+    if (user?.themeColor) {
+      document.documentElement.style.setProperty('--theme-color', user.themeColor);
+    } else {
+      document.documentElement.style.removeProperty('--theme-color');
+    }
+  }, [user?.themeColor]);
 
   const seedData = async () => {
     if (!auth.currentUser) return;
@@ -756,19 +783,35 @@ export default function App() {
   }, [user]);
 
   const deletePendingOrder = async (id: string) => {
-    try {
-      await deleteDoc(doc(db, 'pendingOrders', id));
-    } catch (err) {
-      console.error(err);
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Pending Order',
+      message: 'Are you sure you want to delete this pending order? This action cannot be undone.',
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'pendingOrders', id));
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    });
   };
 
   const deleteSale = async (id: string) => {
-    try {
-      await deleteDoc(doc(db, 'sales', id));
-    } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `sales/${id}`);
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Completed Order',
+      message: 'Are you sure you want to delete this completed order? This will affect your sales reports.',
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'sales', id));
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        } catch (err) {
+          handleFirestoreError(err, OperationType.DELETE, `sales/${id}`);
+        }
+      }
+    });
   };
 
   const updatePendingItem = async (orderId: string, itemIndex: number, delta: number) => {
@@ -814,7 +857,7 @@ export default function App() {
     }
   };
 
-  const addProductToPending = async (orderId: string, product: Product, variation: string, addOns: string[]) => {
+  const addProductToPending = async (orderId: string, product: Product, variation: string, addOns: string[], quantity: number = 1) => {
     const order = pendingOrders.find(o => o.id === orderId);
     if (!order) return;
 
@@ -839,7 +882,7 @@ export default function App() {
       addOns: addOns,
       price: product.basePrice + variationPrice + addOnsPrice,
       cost: cost || 0,
-      quantity: 1
+      quantity: quantity
     };
 
     const newItems = [...order.items, newItem];
@@ -997,7 +1040,7 @@ export default function App() {
           )}
           {activeTab === 'dashboard' && (
             <motion.div key="dashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <DashboardView sales={sales} products={products} ingredients={ingredients} />
+              <DashboardView sales={sales} products={products} ingredients={ingredients} user={user} />
             </motion.div>
           )}
           {activeTab === 'staff' && (
@@ -1011,6 +1054,14 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <ConfirmationModal 
+          isOpen={confirmModal.isOpen}
+          onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+          onConfirm={confirmModal.onConfirm}
+          title={confirmModal.title}
+          message={confirmModal.message}
+        />
       </main>
     </div>
   );
@@ -1038,7 +1089,7 @@ const POSView = ({
   onDeletePending: (id: string) => Promise<void>,
   onUpdatePendingItem: (orderId: string, itemIndex: number, delta: number) => Promise<void>,
   onRemovePendingItem: (orderId: string, itemIndex: number) => Promise<void>,
-  onAddProductToPending: (orderId: string, product: Product, variation: string, addOns: string[]) => Promise<void>,
+  onAddProductToPending: (orderId: string, product: Product, variation: string, addOns: string[], quantity: number) => Promise<void>,
   onCompletePending: (order: PendingOrder) => Promise<void>
 }) => {
   const [cart, setCart] = useState<SaleItem[]>([]);
@@ -1048,6 +1099,8 @@ const POSView = ({
   const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'GCash' | 'Card'>('Cash');
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
+  const [tempDiscount, setTempDiscount] = useState('');
   const [posMode, setPosMode] = useState<'menu' | 'pending'>('menu');
   const [selectedPending, setSelectedPending] = useState<PendingOrder | null>(null);
   const [isAddingProductToPending, setIsAddingProductToPending] = useState(false);
@@ -1056,6 +1109,8 @@ const POSView = ({
   const [selectedVariation, setSelectedVariation] = useState<string>('');
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
   const [targetOrderId, setTargetOrderId] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState<number>(1);
+  const [customerName, setCustomerName] = useState<string>('');
 
   const categories = useMemo(() => {
     const names = dynamicCategories.map(c => c.name);
@@ -1065,7 +1120,7 @@ const POSView = ({
   const filteredProducts = products.filter(p => 
     (category === 'All' || p.category === category) &&
     p.name.toLowerCase().includes(search.toLowerCase())
-  );
+  ).sort((a, b) => a.name.localeCompare(b.name));
 
   const filteredProductsForPending = products.filter(p => 
     p.name.toLowerCase().includes(searchProductForPending.toLowerCase())
@@ -1077,19 +1132,20 @@ const POSView = ({
     setSelectedVariation(firstVariation);
     setSelectedAddOns([]);
     setTargetOrderId(orderId);
+    setQuantity(1);
   };
 
   const handleAddToOrder = async (product: Product, variation: string, addOns: string[]) => {
     if (targetOrderId) {
-      await onAddProductToPending(targetOrderId, product, variation, addOns);
+      await onAddProductToPending(targetOrderId, product, variation, addOns, quantity);
       setTargetOrderId(null);
       setSelectedProductForVariations(null);
     } else {
-      addToCart(product, variation, addOns);
+      addToCart(product, variation, addOns, quantity);
     }
   };
 
-  const addToCart = (product: Product, variation: string, addOns: string[]) => {
+  const addToCart = (product: Product, variation: string, addOns: string[], quantity: number = 1) => {
     const variationPrice = variation ? product.variations[variation] : 0;
     let addOnsPrice = 0;
     addOns.forEach(name => {
@@ -1112,7 +1168,7 @@ const POSView = ({
       addOns: addOns,
       price: product.basePrice + variationPrice + addOnsPrice,
       cost: cost || 0,
-      quantity: 1
+      quantity: quantity
     };
 
     setCart([...cart, newItem]);
@@ -1162,6 +1218,7 @@ const POSView = ({
         items: sanitizedItems,
         total: total || 0,
         discount: discount || 0,
+        customerName: customerName.trim() || 'Guest',
         staffId: user.id || '',
         staffName: user.name || '',
         ownerId: user.isSuperAdmin ? null : (user.role === 'admin' ? user.id : user.ownerId),
@@ -1171,6 +1228,7 @@ const POSView = ({
       await addDoc(collection(db, 'pendingOrders'), orderData);
       setCart([]);
       setDiscount(0);
+      setCustomerName('');
       // alert('Order created successfully!');
     } catch (err) {
       console.error(err);
@@ -1204,6 +1262,7 @@ const POSView = ({
         items: sanitizedItems,
         total: total || 0,
         discount: discount || 0,
+        customerName: customerName.trim() || 'Guest',
         paymentMethod: paymentMethod || 'Cash',
         staffId: user.id || '',
         staffName: user.name || '',
@@ -1235,6 +1294,7 @@ const POSView = ({
       await batch.commit();
       setCart([]);
       setDiscount(0);
+      setCustomerName('');
       // alert('Sale completed successfully!');
     } catch (err) {
       console.error(err);
@@ -1250,12 +1310,12 @@ const POSView = ({
       <div className="flex-1 p-6 flex flex-col gap-6 overflow-hidden">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h2 className="text-3xl font-black text-stone-900">POS</h2>
+            <h2 className="text-3xl font-black text-theme">POS</h2>
             <div className="bg-stone-200 p-1 rounded-xl flex gap-1">
               <button 
                 onClick={() => setPosMode('menu')}
                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  posMode === 'menu' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'
+                  posMode === 'menu' ? 'bg-white text-theme shadow-sm' : 'text-stone-500 hover:text-stone-700'
                 }`}
               >
                 Menu
@@ -1263,7 +1323,7 @@ const POSView = ({
               <button 
                 onClick={() => setPosMode('pending')}
                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  posMode === 'pending' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-700'
+                  posMode === 'pending' ? 'bg-white text-theme shadow-sm' : 'text-stone-500 hover:text-stone-700'
                 }`}
               >
                 Pending Orders
@@ -1278,7 +1338,7 @@ const POSView = ({
                 placeholder="Search products..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-900/10"
+                className="w-full pl-10 pr-4 py-2 bg-white border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-theme/10"
               />
             </div>
           )}
@@ -1295,7 +1355,7 @@ const POSView = ({
                     onClick={() => setCategory(cat)}
                     className={`px-8 py-3.5 rounded-2xl font-bold whitespace-nowrap transition-all shadow-sm border ${
                       category === cat 
-                        ? 'bg-stone-900 text-white border-stone-900 shadow-lg -translate-y-0.5' 
+                        ? 'bg-theme text-white border-theme shadow-lg -translate-y-0.5' 
                         : 'bg-white text-stone-600 hover:bg-stone-50 border-stone-200 hover:border-stone-300'
                     }`}
                   >
@@ -1313,11 +1373,11 @@ const POSView = ({
                   onClick={() => openVariationModal(product)}
                   className="bg-white p-4 rounded-3xl border border-stone-200 shadow-sm hover:shadow-md transition-all flex flex-col items-start text-left group"
                 >
-                  <div className="w-full aspect-square bg-stone-100 rounded-2xl mb-3 flex items-center justify-center group-hover:bg-stone-200 transition-colors">
-                    <Coffee className="text-stone-400 w-8 h-8" />
+                  <div className="w-full aspect-square bg-theme/5 rounded-2xl mb-3 flex items-center justify-center group-hover:bg-theme/10 transition-colors">
+                    <Coffee className="text-theme/40 w-8 h-8" />
                   </div>
-                  <p className="font-bold text-stone-900 text-sm leading-tight line-clamp-2 mb-1">{product.name}</p>
-                  <p className="mt-auto font-black text-stone-900">₱{product.basePrice}</p>
+                  <p className="font-bold text-theme text-sm leading-tight line-clamp-2 mb-1">{product.name}</p>
+                  <p className="mt-auto font-black text-theme">₱{product.basePrice}</p>
                 </motion.button>
               ))}
             </div>
@@ -1333,37 +1393,45 @@ const POSView = ({
               pendingOrders.map(order => (
                 <div
                   key={order.id}
-                  className={`w-full bg-white p-6 rounded-3xl border transition-all ${
-                    selectedPending?.id === order.id ? 'border-stone-900 shadow-lg' : 'border-stone-200'
+                  onClick={() => setSelectedPending(selectedPending?.id === order.id ? null : order)}
+                  className={`w-full bg-white p-6 rounded-3xl border transition-all cursor-pointer ${
+                    selectedPending?.id === order.id ? 'border-theme shadow-lg' : 'border-stone-200 hover:shadow-md'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-stone-100 rounded-2xl flex items-center justify-center">
-                        <Clock className="text-stone-400 w-6 h-6" />
+                      <div className="w-12 h-12 bg-theme/10 rounded-2xl flex items-center justify-center">
+                        <Clock className="text-theme w-6 h-6" />
                       </div>
                       <div>
-                        <p className="font-bold text-stone-900">Pending #{order.id.slice(-6).toUpperCase()}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-theme">Pending #{order.id.slice(-6).toUpperCase()}</p>
+                          {order.customerName && (
+                            <span className="px-2 py-0.5 bg-stone-100 text-stone-600 text-[10px] font-black rounded-full uppercase tracking-wider">
+                              {order.customerName}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-stone-500 text-sm">{format(new Date(order.timestamp), 'h:mm a')}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <p className="font-black text-stone-900 text-lg mr-2">₱{order.total}</p>
+                      <p className="font-black text-theme text-lg mr-2">₱{order.total}</p>
                       <button 
-                        onClick={() => onCompletePending(order)}
-                        className="flex items-center gap-2 px-4 py-2 bg-stone-900 text-white rounded-xl hover:bg-stone-800 transition-all font-bold text-xs shadow-sm"
+                        onClick={(e) => { e.stopPropagation(); onCompletePending(order); }}
+                        className="flex items-center gap-2 px-4 py-2 bg-theme text-white rounded-xl hover:bg-theme/90 transition-all font-bold text-xs shadow-sm"
                       >
                         <CheckCircle className="w-4 h-4" />
                         Complete Sale
                       </button>
                       <button 
-                        onClick={() => setSelectedPending(selectedPending?.id === order.id ? null : order)}
+                        onClick={(e) => { e.stopPropagation(); setSelectedPending(selectedPending?.id === order.id ? null : order); }}
                         className="p-2 hover:bg-stone-100 rounded-xl transition-colors"
                       >
                         {selectedPending?.id === order.id ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
                       </button>
                       <button 
-                        onClick={() => onDeletePending(order.id)}
+                        onClick={(e) => { e.stopPropagation(); onDeletePending(order.id); }}
                         className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
                       >
                         <Trash2 className="w-5 h-5" />
@@ -1378,6 +1446,7 @@ const POSView = ({
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <div className="border-t border-stone-100 pt-4 mt-4 space-y-3">
                           {order.items.map((item, idx) => (
@@ -1567,15 +1636,35 @@ const POSView = ({
                       </div>
                     </div>
                   )}
+
+                  {/* Quantity */}
+                  <div className="space-y-4">
+                    <p className="text-xs font-black text-stone-400 uppercase tracking-widest">Quantity</p>
+                    <div className="flex items-center gap-6 bg-stone-50 p-4 rounded-3xl w-fit">
+                      <button 
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        className="w-12 h-12 rounded-2xl bg-white border border-stone-200 flex items-center justify-center text-stone-600 hover:bg-stone-900 hover:text-white hover:border-stone-900 transition-all shadow-sm active:scale-90"
+                      >
+                        <Minus className="w-5 h-5" />
+                      </button>
+                      <span className="text-2xl font-black text-stone-900 min-w-[2rem] text-center">{quantity}</span>
+                      <button 
+                        onClick={() => setQuantity(quantity + 1)}
+                        className="w-12 h-12 rounded-2xl bg-white border border-stone-200 flex items-center justify-center text-stone-600 hover:bg-stone-900 hover:text-white hover:border-stone-900 transition-all shadow-sm active:scale-90"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="p-8 bg-stone-50 border-t border-stone-100 flex items-center justify-between">
                   <div>
                     <p className="text-stone-400 text-xs font-bold uppercase tracking-widest mb-1">Total Price</p>
                     <p className="text-3xl font-black text-stone-900">
-                      ₱{selectedProductForVariations.basePrice + 
+                      ₱{(selectedProductForVariations.basePrice + 
                         (selectedVariation ? selectedProductForVariations.variations[selectedVariation] : 0) +
-                        selectedAddOns.reduce((sum, name) => sum + (selectedProductForVariations?.addOns[name] || 0), 0)
+                        selectedAddOns.reduce((sum, name) => sum + (selectedProductForVariations?.addOns[name] || 0), 0)) * quantity
                       }
                     </p>
                   </div>
@@ -1597,7 +1686,7 @@ const POSView = ({
       <div className="w-96 bg-white border-l border-stone-200 flex flex-col shadow-2xl">
         <div className="p-6 border-bottom border-stone-100 flex items-center justify-between">
           <h2 className="text-xl font-bold text-stone-900">Current Order</h2>
-          <button onClick={() => setCart([])} className="text-stone-400 hover:text-red-500 transition-colors">
+          <button onClick={() => { setCart([]); setCustomerName(''); }} className="text-stone-400 hover:text-red-500 transition-colors">
             <Trash2 className="w-5 h-5" />
           </button>
         </div>
@@ -1654,67 +1743,150 @@ const POSView = ({
           )}
         </div>
 
-        <div className="p-6 bg-stone-50 border-t border-stone-200 space-y-4">
-          <div className="flex justify-between text-stone-500 font-medium">
-            <span>Subtotal</span>
-            <span>₱{subtotal}</span>
-          </div>
-          <div className="flex justify-between text-stone-500 font-medium">
-            <div className="flex items-center gap-2">
-              <Tag className="w-4 h-4" />
-              <span>Discount</span>
-            </div>
-            <input 
-              type="number" 
-              value={discount}
-              onChange={(e) => setDiscount(Number(e.target.value))}
-              className="w-20 text-right bg-transparent border-b border-stone-300 focus:outline-none focus:border-stone-900"
-            />
-          </div>
-          <div className="flex justify-between text-2xl font-black text-stone-900 pt-2">
-            <span>Total</span>
-            <span>₱{total}</span>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 mt-4">
-            {(['Cash', 'GCash', 'Card'] as const).map(method => (
-              <button
-                key={method}
-                onClick={() => setPaymentMethod(method)}
-                className={`py-3 rounded-xl flex flex-col items-center gap-1 transition-all ${
-                  paymentMethod === method 
-                    ? 'bg-stone-900 text-white shadow-lg' 
-                    : 'bg-white text-stone-500 border border-stone-200 hover:bg-stone-100'
-                }`}
+        <div className="p-4 bg-stone-50 border-t border-stone-200 space-y-3">
+          <div className="flex items-center justify-between text-[10px] font-black text-stone-400 uppercase tracking-widest">
+            <div className="flex gap-4">
+              <span>Sub: ₱{subtotal}</span>
+              <button 
+                onClick={() => {
+                  setTempDiscount(discount > 0 ? discount.toString() : '');
+                  setIsDiscountModalOpen(true);
+                }}
+                className="flex items-center gap-1 text-stone-600 hover:text-stone-900 transition-colors"
               >
-                {method === 'Cash' && <Banknote className="w-5 h-5" />}
-                {method === 'GCash' && <Smartphone className="w-5 h-5" />}
-                {method === 'Card' && <CreditCard className="w-5 h-5" />}
-                <span className="text-[10px] font-bold uppercase">{method}</span>
+                <Tag className="w-3 h-3" />
+                Disc: ₱{discount}
               </button>
-            ))}
+            </div>
+            <div className="flex gap-1">
+              {(['Cash', 'GCash', 'Card'] as const).map(method => (
+                <button
+                  key={method}
+                  onClick={() => setPaymentMethod(method)}
+                  className={`p-1.5 rounded-lg transition-all ${
+                    paymentMethod === method 
+                      ? 'bg-stone-900 text-white shadow-sm' 
+                      : 'bg-white text-stone-400 border border-stone-200 hover:bg-stone-100'
+                  }`}
+                  title={method}
+                >
+                  {method === 'Cash' && <Banknote className="w-3.5 h-3.5" />}
+                  {method === 'GCash' && <Smartphone className="w-3.5 h-3.5" />}
+                  {method === 'Card' && <CreditCard className="w-3.5 h-3.5" />}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mt-4">
+          <div className="flex justify-between items-end">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Total Amount</span>
+              <span className="text-3xl font-black text-stone-900 leading-none">₱{total}</span>
+            </div>
+            <div className="flex-1 ml-4 relative">
+              <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 w-3.5 h-3.5" />
+              <input 
+                type="text" 
+                placeholder="Customer Name..." 
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 bg-white border border-stone-200 rounded-xl text-xs focus:outline-none focus:border-stone-900 transition-all font-medium"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
             <button
               disabled={cart.length === 0 || isCheckingOut || isCreatingOrder}
               onClick={handleCreateOrder}
-              className="w-full bg-stone-100 text-stone-900 py-3 rounded-2xl font-bold text-sm shadow-md hover:bg-stone-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2"
+              className="w-full bg-stone-100 text-stone-900 py-2.5 rounded-xl font-bold text-xs shadow-sm hover:bg-stone-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2"
             >
-              {isCreatingOrder ? <Activity className="animate-spin" /> : <Plus className="w-5 h-5" />}
+              {isCreatingOrder ? <Activity className="animate-spin w-4 h-4" /> : <Plus className="w-4 h-4" />}
               Create Order
             </button>
             <button
               disabled={cart.length === 0 || isCheckingOut || isCreatingOrder}
               onClick={handleCheckout}
-              className="w-full bg-stone-900 text-white py-3 rounded-2xl font-bold text-sm shadow-xl hover:bg-stone-800 active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2"
+              className="w-full bg-stone-900 text-white py-2.5 rounded-xl font-bold text-xs shadow-lg hover:bg-stone-800 active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2"
             >
-              {isCheckingOut ? <Activity className="animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+              {isCheckingOut ? <Activity className="animate-spin w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
               Complete Sale
             </button>
           </div>
         </div>
       </div>
+
+      {/* Discount Numpad Modal */}
+      <AnimatePresence>
+        {isDiscountModalOpen && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-[2.5rem] w-full max-w-sm overflow-hidden shadow-2xl"
+            >
+              <div className="p-8 border-b border-stone-100 flex items-center justify-between">
+                <div>
+                  <h3 className="text-2xl font-black text-stone-900">Apply Discount</h3>
+                  <p className="text-stone-500 font-medium">Enter discount amount</p>
+                </div>
+                <button 
+                  onClick={() => setIsDiscountModalOpen(false)} 
+                  className="p-3 hover:bg-stone-100 rounded-2xl transition-colors"
+                >
+                  <X className="w-6 h-6 text-stone-400" />
+                </button>
+              </div>
+
+              <div className="p-8 space-y-8">
+                <div className="bg-stone-50 p-6 rounded-3xl text-center">
+                  <span className="text-stone-400 text-sm font-bold uppercase tracking-widest block mb-2">Amount</span>
+                  <span className="text-5xl font-black text-stone-900">₱{tempDiscount || '0'}</span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'C', 0, '⌫'].map((key) => (
+                    <button
+                      key={key}
+                      onClick={() => {
+                        if (key === 'C') {
+                          setTempDiscount('');
+                        } else if (key === '⌫') {
+                          setTempDiscount(prev => prev.slice(0, -1));
+                        } else {
+                          // Prevent multiple zeros at the start
+                          if (tempDiscount === '' && key === 0) return;
+                          setTempDiscount(prev => prev + key);
+                        }
+                      }}
+                      className={`h-16 rounded-2xl font-bold text-xl transition-all active:scale-95 ${
+                        key === 'C' 
+                          ? 'bg-red-50 text-red-500 hover:bg-red-100' 
+                          : key === '⌫'
+                          ? 'bg-stone-100 text-stone-500 hover:bg-stone-200'
+                          : 'bg-stone-50 text-stone-900 hover:bg-stone-100'
+                      }`}
+                    >
+                      {key}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => {
+                    setDiscount(Number(tempDiscount) || 0);
+                    setIsDiscountModalOpen(false);
+                  }}
+                  className="w-full py-5 bg-stone-900 text-white rounded-2xl font-black text-lg shadow-xl hover:bg-stone-800 transition-all active:scale-[0.98]"
+                >
+                  Confirm Discount
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
@@ -1741,7 +1913,7 @@ const OrdersView = ({
   onDeletePending: (id: string) => Promise<void>,
   onUpdatePendingItem: (orderId: string, itemIndex: number, delta: number) => Promise<void>,
   onRemovePendingItem: (orderId: string, itemIndex: number) => Promise<void>,
-  onAddProductToPending: (orderId: string, product: Product, variation: string, addOns: string[]) => Promise<void>,
+  onAddProductToPending: (orderId: string, product: Product, variation: string, addOns: string[], quantity: number) => Promise<void>,
   onCompletePending: (order: PendingOrder) => Promise<void>,
   onDeleteSale: (id: string) => Promise<void>,
   isAdmin: boolean
@@ -1755,17 +1927,19 @@ const OrdersView = ({
   const [selectedProductForVariations, setSelectedProductForVariations] = useState<Product | null>(null);
   const [selectedVariation, setSelectedVariation] = useState<string>('');
   const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
+  const [quantity, setQuantity] = useState<number>(1);
 
   const openVariationModal = (product: Product) => {
     setSelectedProductForVariations(product);
     const firstVariation = Object.keys(product.variations)[0] || '';
     setSelectedVariation(firstVariation);
     setSelectedAddOns([]);
+    setQuantity(1);
   };
 
   const handleAddToPending = async (product: Product, variation: string, addOns: string[]) => {
     if (selectedPending) {
-      await onAddProductToPending(selectedPending.id, product, variation, addOns);
+      await onAddProductToPending(selectedPending.id, product, variation, addOns, quantity);
       setSelectedProductForVariations(null);
     }
   };
@@ -1813,7 +1987,14 @@ const OrdersView = ({
                       <History className="text-stone-400 w-6 h-6" />
                     </div>
                     <div>
-                      <p className="font-bold text-stone-900">Order #{sale.id.slice(-6).toUpperCase()}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-stone-900">Order #{sale.id.slice(-6).toUpperCase()}</p>
+                        {sale.customerName && (
+                          <span className="px-2 py-0.5 bg-stone-100 text-stone-600 text-[10px] font-black rounded-full uppercase tracking-wider">
+                            {sale.customerName}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-stone-500 text-sm">{format(new Date(sale.timestamp), 'MMM d, yyyy • h:mm a')}</p>
                     </div>
                   </div>
@@ -1867,8 +2048,9 @@ const OrdersView = ({
             pendingOrders.map(order => (
               <div
                 key={order.id}
-                className={`w-full bg-white p-6 rounded-3xl border transition-all ${
-                  selectedPending?.id === order.id ? 'border-stone-900 shadow-lg' : 'border-stone-200'
+                onClick={() => setSelectedPending(selectedPending?.id === order.id ? null : order)}
+                className={`w-full bg-white p-6 rounded-3xl border transition-all cursor-pointer ${
+                  selectedPending?.id === order.id ? 'border-stone-900 shadow-lg' : 'border-stone-200 hover:shadow-md'
                 }`}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -1877,27 +2059,34 @@ const OrdersView = ({
                       <Clock className="text-stone-400 w-6 h-6" />
                     </div>
                     <div>
-                      <p className="font-bold text-stone-900">Pending #{order.id.slice(-6).toUpperCase()}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-stone-900">Pending #{order.id.slice(-6).toUpperCase()}</p>
+                        {order.customerName && (
+                          <span className="px-2 py-0.5 bg-stone-100 text-stone-600 text-[10px] font-black rounded-full uppercase tracking-wider">
+                            {order.customerName}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-stone-500 text-sm">{format(new Date(order.timestamp), 'h:mm a')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <p className="font-black text-stone-900 text-lg mr-2">₱{order.total}</p>
                     <button 
-                      onClick={() => onCompletePending(order)}
+                      onClick={(e) => { e.stopPropagation(); onCompletePending(order); }}
                       className="flex items-center gap-2 px-4 py-2 bg-stone-900 text-white rounded-xl hover:bg-stone-800 transition-all font-bold text-xs shadow-sm"
                     >
                       <CheckCircle className="w-4 h-4" />
                       Complete Sale
                     </button>
                     <button 
-                      onClick={() => setSelectedPending(selectedPending?.id === order.id ? null : order)}
+                      onClick={(e) => { e.stopPropagation(); setSelectedPending(selectedPending?.id === order.id ? null : order); }}
                       className="p-2 hover:bg-stone-100 rounded-xl transition-colors"
                     >
                       {selectedPending?.id === order.id ? <ChevronLeft className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
                     </button>
                     <button 
-                      onClick={() => onDeletePending(order.id)}
+                      onClick={(e) => { e.stopPropagation(); onDeletePending(order.id); }}
                       className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
                     >
                       <Trash2 className="w-5 h-5" />
@@ -1912,6 +2101,7 @@ const OrdersView = ({
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <div className="border-t border-stone-100 pt-4 mt-4 space-y-3">
                         {order.items.map((item, idx) => (
@@ -1947,10 +2137,14 @@ const OrdersView = ({
                           </div>
                         ))}
 
-                        <div className="flex gap-2 pt-2">
+                        <div className="flex gap-2 pt-2 items-center justify-between">
+                          <div className="flex items-center gap-2 text-stone-400 text-xs">
+                            <UserCircle className="w-4 h-4" />
+                            <span>Staff: <span className="font-bold text-stone-900">{order.staffName}</span></span>
+                          </div>
                           <button 
                             onClick={() => setIsAddingProduct(true)}
-                            className="flex-1 flex items-center justify-center gap-2 py-3 border-2 border-dashed border-stone-200 rounded-2xl text-stone-400 hover:border-stone-900 hover:text-stone-900 transition-all font-bold text-sm"
+                            className="flex items-center justify-center gap-2 px-6 py-3 border-2 border-dashed border-stone-200 rounded-2xl text-stone-400 hover:border-stone-900 hover:text-stone-900 transition-all font-bold text-sm"
                           >
                             <Plus className="w-4 h-4" />
                             Add Product
@@ -2012,11 +2206,17 @@ const OrdersView = ({
                   </div>
                 </div>
 
-                <div className="mt-8 pt-8 border-t border-stone-100">
-                  <div className="flex items-center gap-3 text-stone-500 text-sm mb-4">
+                <div className="mt-8 pt-8 border-t border-stone-100 space-y-4">
+                  <div className="flex items-center gap-3 text-stone-500 text-sm">
                     <UserCircle className="w-4 h-4" />
                     <span>Served by: <span className="font-bold text-stone-900">{selectedOrder.staffName}</span></span>
                   </div>
+                  {selectedOrder.customerName && (
+                    <div className="flex items-center gap-3 text-stone-500 text-sm">
+                      <UserIcon className="w-4 h-4" />
+                      <span>Customer: <span className="font-bold text-stone-900">{selectedOrder.customerName}</span></span>
+                    </div>
+                  )}
                   <button className="w-full flex items-center justify-center gap-2 bg-stone-100 hover:bg-stone-200 text-stone-900 py-4 rounded-2xl font-bold transition-all">
                     <Printer className="w-5 h-5" />
                     Print Receipt
@@ -2166,15 +2366,35 @@ const OrdersView = ({
                     </div>
                   </div>
                 )}
+
+                {/* Quantity */}
+                <div className="space-y-4">
+                  <p className="text-xs font-black text-stone-400 uppercase tracking-widest">Quantity</p>
+                  <div className="flex items-center gap-6 bg-stone-50 p-4 rounded-3xl w-fit">
+                    <button 
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="w-12 h-12 rounded-2xl bg-white border border-stone-200 flex items-center justify-center text-stone-600 hover:bg-stone-900 hover:text-white hover:border-stone-900 transition-all shadow-sm active:scale-90"
+                    >
+                      <Minus className="w-5 h-5" />
+                    </button>
+                    <span className="text-2xl font-black text-stone-900 min-w-[2rem] text-center">{quantity}</span>
+                    <button 
+                      onClick={() => setQuantity(quantity + 1)}
+                      className="w-12 h-12 rounded-2xl bg-white border border-stone-200 flex items-center justify-center text-stone-600 hover:bg-stone-900 hover:text-white hover:border-stone-900 transition-all shadow-sm active:scale-90"
+                    >
+                      <Plus className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="p-8 bg-stone-50 border-t border-stone-100 flex items-center justify-between">
                 <div>
                   <p className="text-stone-400 text-xs font-bold uppercase tracking-widest mb-1">Total Price</p>
                   <p className="text-3xl font-black text-stone-900">
-                    ₱{selectedProductForVariations.basePrice + 
+                    ₱{(selectedProductForVariations.basePrice + 
                       (selectedVariation ? selectedProductForVariations.variations[selectedVariation] : 0) +
-                      selectedAddOns.reduce((sum, name) => sum + (selectedProductForVariations?.addOns[name] || 0), 0)
+                      selectedAddOns.reduce((sum, name) => sum + (selectedProductForVariations?.addOns[name] || 0), 0)) * quantity
                     }
                   </p>
                 </div>
@@ -2524,7 +2744,7 @@ const ProductsView = ({ products, categories, ingredients, sales, currentUser }:
 
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-black text-stone-900">Products</h2>
+          <h2 className="text-3xl font-black text-theme">Products</h2>
           <p className="text-stone-500">Manage your menu and recipes</p>
         </div>
         <div className="flex gap-4">
@@ -2535,14 +2755,14 @@ const ProductsView = ({ products, categories, ingredients, sales, currentUser }:
           </label>
           <button 
             onClick={() => setIsManagingCategories(true)}
-            className="bg-white text-stone-900 px-6 py-3 rounded-2xl font-bold border border-stone-200 shadow-sm hover:bg-stone-50 transition-all flex items-center gap-2"
+            className="bg-white text-theme px-6 py-3 rounded-2xl font-bold border border-stone-200 shadow-sm hover:bg-stone-50 transition-all flex items-center gap-2"
           >
             <Settings className="w-5 h-5" />
             Categories
           </button>
           <button 
             onClick={() => { resetForm(); setIsAdding(true); }}
-            className="bg-stone-900 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg hover:bg-stone-800 transition-all"
+            className="bg-theme text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg hover:bg-theme/90 transition-all"
           >
             <Plus className="w-5 h-5" />
             Add Product
@@ -3032,7 +3252,7 @@ const InventoryView = ({ ingredients, products, currentUser }: { ingredients: In
     <div className="p-8 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-black text-stone-900">Inventory</h2>
+          <h2 className="text-3xl font-black text-theme">Inventory</h2>
           <p className="text-stone-500">Manage ingredients and stock levels</p>
         </div>
         <button 
@@ -3040,7 +3260,7 @@ const InventoryView = ({ ingredients, products, currentUser }: { ingredients: In
             setNewIngredient({ name: '', stockLevel: 0, unitAmount: 1, unitName: 'grams', pricePerUnitAmount: 0, lowStockThreshold: 100 });
             setIsAdding(true);
           }}
-          className="bg-stone-900 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg hover:bg-stone-800 transition-all"
+          className="bg-theme text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg hover:bg-theme/90 transition-all"
         >
           <Plus className="w-5 h-5" />
           Add Ingredient
@@ -3197,19 +3417,136 @@ const InventoryView = ({ ingredients, products, currentUser }: { ingredients: In
   );
 };
 
-const DashboardView = ({ sales, products, ingredients }: { sales: Sale[], products: Product[], ingredients: Ingredient[] }) => {
-  const todaySales = sales.filter(s => isWithinInterval(new Date(s.timestamp), {
-    start: startOfDay(new Date()),
-    end: endOfDay(new Date())
-  }));
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }: { 
+  isOpen: boolean, 
+  onClose: () => void, 
+  onConfirm: () => void, 
+  title: string, 
+  message: string 
+}) => (
+  <AnimatePresence>
+    {isOpen && (
+      <div className="fixed inset-0 bg-theme/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8"
+        >
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center">
+              <AlertCircle className="text-red-500 w-6 h-6" />
+            </div>
+            <h3 className="text-2xl font-black text-theme">{title}</h3>
+          </div>
+          <p className="text-stone-500 font-medium mb-8 leading-relaxed">{message}</p>
+          <div className="flex gap-4">
+            <button 
+              onClick={onClose}
+              className="flex-1 py-4 rounded-2xl font-bold text-stone-500 bg-stone-50 hover:bg-stone-100 transition-all"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={onConfirm}
+              className="flex-1 py-4 rounded-2xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all"
+            >
+              Confirm Delete
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    )}
+  </AnimatePresence>
+);
 
-  const totalRevenue = todaySales.reduce((sum, s) => sum + (s.total || 0), 0);
-  const totalProfit = todaySales.reduce((sum, s) => sum + (s.profit || 0), 0);
-  const totalOrders = todaySales.length;
+const DashboardView = ({ sales, products, ingredients, user }: { sales: Sale[], products: Product[], ingredients: Ingredient[], user: User }) => {
+  const [reportType, setReportType] = useState<'daily' | 'monthly'>('daily');
+  const [reportView, setReportView] = useState<'glance' | 'log'>('log');
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [showFinancials, setShowFinancials] = useState(true);
+
+  const filteredSales = useMemo(() => {
+    if (reportType === 'daily') {
+      const date = new Date(selectedDate);
+      return sales.filter(s => isWithinInterval(new Date(s.timestamp), {
+        start: startOfDay(date),
+        end: endOfDay(date)
+      }));
+    } else {
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const start = new Date(year, month - 1, 1);
+      const end = new Date(year, month, 0, 23, 59, 59);
+      return sales.filter(s => isWithinInterval(new Date(s.timestamp), {
+        start,
+        end
+      }));
+    }
+  }, [sales, reportType, selectedDate, selectedMonth]);
+
+  const lastPeriodSales = useMemo(() => {
+    if (reportType === 'daily') {
+      const date = subDays(new Date(selectedDate), 1);
+      return sales.filter(s => isWithinInterval(new Date(s.timestamp), {
+        start: startOfDay(date),
+        end: endOfDay(date)
+      }));
+    } else {
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const date = subMonths(new Date(year, month - 1, 1), 1);
+      const start = startOfMonth(date);
+      const end = endOfMonth(date);
+      return sales.filter(s => isWithinInterval(new Date(s.timestamp), {
+        start,
+        end
+      }));
+    }
+  }, [sales, reportType, selectedDate, selectedMonth]);
+
+  const totalRevenue = filteredSales.reduce((sum, s) => sum + (s.total || 0), 0);
+  const totalProfit = filteredSales.reduce((sum, s) => sum + (s.profit || 0), 0);
+  const totalOrders = filteredSales.length;
+  const totalDiscounts = filteredSales.reduce((sum, s) => sum + (s.discount || 0), 0);
+
+  const lastRevenue = lastPeriodSales.reduce((sum, s) => sum + (s.total || 0), 0);
+  const lastOrders = lastPeriodSales.length;
+
+  // Monthly specific metrics
+  const monthlyMetrics = useMemo(() => {
+    if (reportType !== 'monthly') return null;
+    
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const avgDailySales = totalRevenue / daysInMonth;
+
+    const dailyTotals: Record<string, number> = {};
+    filteredSales.forEach(s => {
+      const day = format(new Date(s.timestamp), 'yyyy-MM-dd');
+      dailyTotals[day] = (dailyTotals[day] || 0) + s.total;
+    });
+
+    const bestDay = Object.entries(dailyTotals).sort(([, a], [, b]) => b - a)[0];
+
+    return {
+      avgDailySales,
+      bestDay: bestDay ? { date: bestDay[0], amount: bestDay[1] } : null
+    };
+  }, [filteredSales, reportType, selectedMonth, totalRevenue]);
+
+  const [pendingThemeColor, setPendingThemeColor] = useState(user.themeColor || '#1c1917');
+
+  const handleThemeChange = async () => {
+    try {
+      await updateDoc(doc(db, 'users', user.id), { themeColor: pendingThemeColor });
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   // Calculate top products
   const productSales: Record<string, number> = {};
-  sales.forEach(sale => {
+  filteredSales.forEach(sale => {
     sale.items.forEach(item => {
       productSales[item.productName] = (productSales[item.productName] || 0) + item.quantity;
     });
@@ -3221,75 +3558,301 @@ const DashboardView = ({ sales, products, ingredients }: { sales: Sale[], produc
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h2 className="text-3xl font-black text-stone-900">Dashboard</h2>
-        <p className="text-stone-500">Business performance at a glance</p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h2 className="text-3xl font-black text-theme">Dashboard</h2>
+          <p className="text-stone-500">Business performance at a glance</p>
+        </div>
+        <div className="flex items-center gap-4 bg-white p-4 rounded-3xl border border-stone-200 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg border border-stone-200" style={{ backgroundColor: pendingThemeColor }} />
+              <input 
+                type="color" 
+                value={pendingThemeColor} 
+                onChange={(e) => setPendingThemeColor(e.target.value)}
+                className="w-8 h-8 opacity-0 absolute cursor-pointer"
+              />
+              <span className="text-xs font-bold text-stone-500 uppercase tracking-widest">Theme Color</span>
+            </div>
+            {pendingThemeColor !== (user.themeColor || '#1c1917') && (
+              <button 
+                onClick={handleThemeChange}
+                className="bg-theme text-white px-4 py-1.5 rounded-xl text-xs font-bold shadow-sm hover:opacity-90 transition-all"
+              >
+                Apply
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-8 rounded-3xl border border-stone-200 shadow-sm">
+        <div className="bg-white p-8 rounded-3xl border border-stone-200 shadow-sm relative group">
+          <button 
+            onClick={() => setShowFinancials(!showFinancials)}
+            className="absolute top-4 right-4 p-2 text-stone-400 hover:text-theme transition-colors"
+          >
+            {showFinancials ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+          </button>
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-stone-100 rounded-2xl flex items-center justify-center">
-              <DollarSign className="text-stone-900 w-6 h-6" />
+            <div className="w-12 h-12 bg-theme/10 rounded-2xl flex items-center justify-center">
+              <DollarSign className="text-theme w-6 h-6" />
             </div>
-            <p className="text-stone-500 font-bold uppercase tracking-widest text-xs">Today's Revenue</p>
+            <p className="text-stone-500 font-bold uppercase tracking-widest text-xs">{reportType === 'daily' ? "Day's" : "Month's"} Revenue</p>
           </div>
-          <p className="text-4xl font-black text-stone-900">₱{totalRevenue.toLocaleString()}</p>
-          <div className="flex items-center gap-1 text-green-500 text-sm font-bold mt-2">
-            <TrendingUp className="w-4 h-4" />
-            <span>+12.5% from yesterday</span>
-          </div>
+          <p className="text-4xl font-black text-theme">
+            {showFinancials ? `₱${totalRevenue.toLocaleString()}` : "₱ ••••••"}
+          </p>
         </div>
 
-        <div className="bg-white p-8 rounded-3xl border border-stone-200 shadow-sm">
+        <div className="bg-white p-8 rounded-3xl border border-stone-200 shadow-sm relative">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-stone-100 rounded-2xl flex items-center justify-center">
-              <TrendingUp className="text-stone-900 w-6 h-6" />
+            <div className="w-12 h-12 bg-theme/10 rounded-2xl flex items-center justify-center">
+              <TrendingUp className="text-theme w-6 h-6" />
             </div>
-            <p className="text-stone-500 font-bold uppercase tracking-widest text-xs">Today's Profits</p>
+            <p className="text-stone-500 font-bold uppercase tracking-widest text-xs">{reportType === 'daily' ? "Day's" : "Month's"} Profits</p>
           </div>
-          <p className="text-4xl font-black text-stone-900">₱{totalProfit.toLocaleString()}</p>
+          <p className="text-4xl font-black text-theme">
+            {showFinancials ? `₱${totalProfit.toLocaleString()}` : "₱ ••••••"}
+          </p>
           <p className="text-stone-400 text-sm font-bold mt-2">Margin: {totalRevenue ? ((totalProfit/totalRevenue)*100).toFixed(1) : 0}%</p>
         </div>
 
         <div className="bg-white p-8 rounded-3xl border border-stone-200 shadow-sm">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-stone-100 rounded-2xl flex items-center justify-center">
-              <ShoppingBag className="text-stone-900 w-6 h-6" />
+            <div className="w-12 h-12 bg-theme/10 rounded-2xl flex items-center justify-center">
+              <ShoppingBag className="text-theme w-6 h-6" />
             </div>
             <p className="text-stone-500 font-bold uppercase tracking-widest text-xs">Total Orders</p>
           </div>
-          <p className="text-4xl font-black text-stone-900">{totalOrders}</p>
+          <p className="text-4xl font-black text-theme">{totalOrders}</p>
           <p className="text-stone-400 text-sm font-bold mt-2">Avg. Ticket: ₱{totalOrders ? (totalRevenue/totalOrders).toFixed(0) : 0}</p>
         </div>
       </div>
 
+      <div className="bg-white p-8 rounded-[2.5rem] border border-stone-200 shadow-sm mb-8">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-2 bg-stone-50 p-2 rounded-2xl">
+              <button 
+                onClick={() => setReportType('daily')}
+                className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${reportType === 'daily' ? 'bg-white text-theme shadow-sm' : 'text-stone-400'}`}
+              >
+                Daily Report
+              </button>
+              <button 
+                onClick={() => setReportType('monthly')}
+                className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${reportType === 'monthly' ? 'bg-white text-theme shadow-sm' : 'text-stone-400'}`}
+              >
+                Monthly Report
+              </button>
+            </div>
+            <div className="flex items-center gap-2 bg-stone-50 p-2 rounded-2xl w-fit">
+              <button 
+                onClick={() => setReportView('log')}
+                className={`px-4 py-1.5 rounded-lg font-bold text-xs transition-all ${reportView === 'log' ? 'bg-white text-theme shadow-sm' : 'text-stone-400'}`}
+              >
+                Detailed Log
+              </button>
+              <button 
+                onClick={() => setReportView('glance')}
+                className={`px-4 py-1.5 rounded-lg font-bold text-xs transition-all ${reportView === 'glance' ? 'bg-white text-theme shadow-sm' : 'text-stone-400'}`}
+              >
+                Glance
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            {reportType === 'daily' ? (
+              <input 
+                type="date" 
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-stone-50 border border-stone-200 px-4 py-2 rounded-xl font-bold text-stone-700 outline-none focus:border-theme"
+              />
+            ) : (
+              <input 
+                type="month" 
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="bg-stone-50 border border-stone-200 px-4 py-2 rounded-xl font-bold text-stone-700 outline-none focus:border-theme"
+              />
+            )}
+          </div>
+        </div>
+
+        {reportView === 'log' ? (
+          <div className="space-y-4">
+            <h4 className="text-xs font-black text-stone-400 uppercase tracking-widest mb-4">Detailed Sales Log</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-stone-100">
+                    <th className="pb-4 font-bold text-theme">Time</th>
+                    <th className="pb-4 font-bold text-theme">Items</th>
+                    <th className="pb-4 font-bold text-theme">Staff</th>
+                    <th className="pb-4 font-bold text-theme">Method</th>
+                    <th className="pb-4 font-bold text-theme text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-50">
+                  {filteredSales.map(sale => (
+                    <tr key={sale.id} className="group hover:bg-stone-50 transition-colors">
+                      <td className="py-4 text-stone-500 text-sm font-medium">
+                        {format(new Date(sale.timestamp), 'h:mm a')}
+                        <br />
+                        <span className="text-[10px] text-stone-400">{format(new Date(sale.timestamp), 'MMM d, yyyy')}</span>
+                      </td>
+                      <td className="py-4">
+                        <div className="max-w-xs">
+                          {sale.items.map((item, i) => (
+                            <span key={i} className="text-xs text-stone-600">
+                              {item.quantity}x {item.productName}{item.variation ? ` (${item.variation})` : ''}
+                              {i < sale.items.length - 1 ? ', ' : ''}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="py-4 text-stone-600 text-sm font-medium">{sale.staffName}</td>
+                      <td className="py-4">
+                        <span className="px-2 py-1 bg-theme/10 rounded-lg text-[10px] font-black uppercase tracking-widest text-theme">
+                          {sale.paymentMethod}
+                        </span>
+                      </td>
+                      <td className="py-4 text-right font-black text-theme">₱{sale.total.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                  {filteredSales.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="py-12 text-center text-stone-400 font-medium italic">
+                        No sales recorded for this period.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="space-y-6">
+              <div>
+                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">Total Sales</p>
+                <p className="text-2xl font-black text-theme">₱{totalRevenue.toLocaleString()}</p>
+                <div className="flex items-center gap-1 mt-1">
+                  {totalRevenue >= lastRevenue ? (
+                    <ArrowUpRight className="w-3 h-3 text-green-500" />
+                  ) : (
+                    <ArrowDownRight className="w-3 h-3 text-red-500" />
+                  )}
+                  <p className={`text-[10px] font-bold ${totalRevenue >= lastRevenue ? 'text-green-500' : 'text-red-500'}`}>
+                    vs last {reportType === 'daily' ? 'day' : 'month'}: ₱{lastRevenue.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">Total Orders</p>
+                <p className="text-2xl font-black text-theme">{totalOrders}</p>
+                <div className="flex items-center gap-1 mt-1">
+                  {totalOrders >= lastOrders ? (
+                    <ArrowUpRight className="w-3 h-3 text-green-500" />
+                  ) : (
+                    <ArrowDownRight className="w-3 h-3 text-red-500" />
+                  )}
+                  <p className={`text-[10px] font-bold ${totalOrders >= lastOrders ? 'text-green-500' : 'text-red-500'}`}>
+                    vs last {reportType === 'daily' ? 'day' : 'month'}: {lastOrders}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">Gross Profit</p>
+                <p className="text-2xl font-black text-theme">₱{totalProfit.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-2">Discounts Given</p>
+                <p className="text-2xl font-black text-red-500">₱{totalDiscounts.toLocaleString()}</p>
+              </div>
+            </div>
+
+            <div className="col-span-1 md:col-span-2">
+              <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-4">Top Products</p>
+              <div className="space-y-3">
+                {topProducts.map(([name, qty], i) => (
+                  <div key={name} className="flex items-center justify-between bg-stone-50 p-3 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <span className="w-6 h-6 bg-theme text-white rounded-lg flex items-center justify-center text-[10px] font-bold">
+                        {i + 1}
+                      </span>
+                      <p className="text-sm font-bold text-stone-700">{name}</p>
+                    </div>
+                    <p className="text-sm font-black text-theme">{qty} sold</p>
+                  </div>
+                ))}
+                {topProducts.length === 0 && (
+                  <p className="text-sm text-stone-400 italic">No products sold yet.</p>
+                )}
+              </div>
+            </div>
+
+            {reportType === 'monthly' && monthlyMetrics && (
+              <div className="col-span-1 md:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-stone-100">
+                <div className="flex items-center gap-4 bg-theme/5 p-6 rounded-3xl">
+                  <div className="w-12 h-12 bg-theme/10 rounded-2xl flex items-center justify-center">
+                    <Zap className="text-theme w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Average Daily Sales</p>
+                    <p className="text-xl font-black text-theme">₱{monthlyMetrics.avgDailySales.toFixed(0).toLocaleString()}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 bg-theme/5 p-6 rounded-3xl">
+                  <div className="w-12 h-12 bg-theme/10 rounded-2xl flex items-center justify-center">
+                    <Target className="text-theme w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Best Day</p>
+                    <p className="text-xl font-black text-theme">
+                      {monthlyMetrics.bestDay ? `₱${monthlyMetrics.bestDay.amount.toLocaleString()}` : 'N/A'}
+                    </p>
+                    {monthlyMetrics.bestDay && (
+                      <p className="text-[10px] font-bold text-stone-400">{format(new Date(monthlyMetrics.bestDay.date), 'MMMM d, yyyy')}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white p-8 rounded-3xl border border-stone-200 shadow-sm">
-          <h3 className="text-xl font-black text-stone-900 mb-6">Top Selling Items</h3>
+          <h3 className="text-xl font-black text-theme mb-6">Top Selling Items</h3>
           <div className="space-y-6">
             {topProducts.map(([name, qty], i) => (
               <div key={name} className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <span className="w-8 h-8 bg-stone-100 rounded-lg flex items-center justify-center font-bold text-stone-500 text-sm">
+                  <span className="w-8 h-8 bg-theme/10 rounded-lg flex items-center justify-center font-bold text-theme text-sm">
                     {i + 1}
                   </span>
-                  <p className="font-bold text-stone-900">{name}</p>
+                  <p className="font-bold text-theme">{name}</p>
                 </div>
-                <p className="font-black text-stone-900">{qty} sold</p>
+                <p className="font-black text-theme">{qty} sold</p>
               </div>
             ))}
           </div>
         </div>
 
         <div className="bg-white p-8 rounded-3xl border border-stone-200 shadow-sm">
-          <h3 className="text-xl font-black text-stone-900 mb-6">Product Margins</h3>
-          <div className="space-y-4 overflow-y-auto max-h-[400px] pr-2">
+          <h3 className="text-xl font-black text-theme mb-6">Product Margins</h3>
+          <div className="space-y-4 overflow-y-auto max-h-[400px] pr-2 scrollbar-hide">
             {products.map(p => {
-              // Calculate cost
               let cost = 0;
-              // This is a simplified cost calculation for the dashboard
-              // In a real app, you'd calculate this based on the latest ingredient costs
               p.recipe.forEach(r => {
                 const ing = ingredients.find(i => i.id === r.ingredientId);
                 if (ing && ing.unitAmount > 0) {
@@ -3302,11 +3865,11 @@ const DashboardView = ({ sales, products, ingredients }: { sales: Sale[], produc
               return (
                 <div key={p.id} className="flex items-center justify-between p-3 hover:bg-stone-50 rounded-2xl transition-colors">
                   <div>
-                    <p className="font-bold text-stone-900">{p.name}</p>
+                    <p className="font-bold text-theme">{p.name}</p>
                     <p className="text-stone-400 text-xs uppercase tracking-widest font-bold">{p.category}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-black text-stone-900">₱{p.basePrice}</p>
+                    <p className="font-black text-theme">₱{p.basePrice}</p>
                     <p className={`text-xs font-bold ${Number(margin) > 50 ? 'text-green-500' : 'text-orange-500'}`}>
                       {margin}% Margin
                     </p>
@@ -3366,12 +3929,12 @@ const StaffView = ({ currentUser }: { currentUser: User }) => {
     <div className="p-8 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-black text-stone-900">Staff Management</h2>
+          <h2 className="text-3xl font-black text-theme">Staff Management</h2>
           <p className="text-stone-500">Manage team members and access roles</p>
         </div>
         <button 
           onClick={() => setIsAdding(true)}
-          className="bg-stone-900 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg hover:bg-stone-800 transition-all"
+          className="bg-theme text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg hover:bg-theme/90 transition-all"
         >
           <Plus className="w-5 h-5" />
           Add Staff

@@ -12,6 +12,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const { content } = req.body;
+  if (!content) {
+    return res.status(400).json({ error: { message: "Missing 'content' in request body." } });
+  }
+
   const apiKey = process.env.OPENROUTER_API_KEY;
 
   if (!apiKey) {
