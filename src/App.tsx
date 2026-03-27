@@ -1491,6 +1491,23 @@ const POSView = ({
                               Add Product
                             </button>
                           </div>
+
+                          <div className="border-t border-stone-100 pt-3 mt-3 flex flex-col gap-1">
+                            <div className="flex justify-between text-[10px] font-black text-stone-400 uppercase tracking-widest">
+                              <span>Subtotal</span>
+                              <span>₱{order.total + (order.discount || 0)}</span>
+                            </div>
+                            {order.discount > 0 && (
+                              <div className="flex justify-between text-[10px] font-black text-red-400 uppercase tracking-widest">
+                                <span>Discount</span>
+                                <span>-₱{order.discount}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between text-sm font-black text-stone-900">
+                              <span>Total</span>
+                              <span>₱{order.total}</span>
+                            </div>
+                          </div>
                         </div>
                       </motion.div>
                     )}
@@ -1683,7 +1700,7 @@ const POSView = ({
       </div>
 
       {/* Cart / Checkout */}
-      <div className="w-96 bg-white border-l border-stone-200 flex flex-col shadow-2xl">
+      <div className="w-[450px] bg-white border-l border-stone-200 flex flex-col shadow-2xl">
         <div className="p-6 border-bottom border-stone-100 flex items-center justify-between">
           <h2 className="text-xl font-bold text-stone-900">Current Order</h2>
           <button onClick={() => { setCart([]); setCustomerName(''); }} className="text-stone-400 hover:text-red-500 transition-colors">
@@ -1799,18 +1816,18 @@ const POSView = ({
             <button
               disabled={cart.length === 0 || isCheckingOut || isCreatingOrder}
               onClick={handleCreateOrder}
-              className="w-full bg-stone-100 text-stone-900 py-2.5 rounded-xl font-bold text-xs shadow-sm hover:bg-stone-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2"
+              className="w-full bg-stone-100 text-stone-900 py-6 rounded-2xl font-black text-xs shadow-sm hover:bg-stone-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 flex flex-col items-center justify-center gap-1"
             >
-              {isCreatingOrder ? <Activity className="animate-spin w-4 h-4" /> : <Plus className="w-4 h-4" />}
-              Create Order
+              {isCreatingOrder ? <Activity className="animate-spin w-5 h-5" /> : <Plus className="w-5 h-5" />}
+              <span>Create Order</span>
             </button>
             <button
               disabled={cart.length === 0 || isCheckingOut || isCreatingOrder}
               onClick={handleCheckout}
-              className="w-full bg-stone-900 text-white py-2.5 rounded-xl font-bold text-xs shadow-lg hover:bg-stone-800 active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2"
+              className="w-full bg-stone-900 text-white py-6 rounded-2xl font-black text-xs shadow-xl hover:bg-stone-800 active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 flex flex-col items-center justify-center gap-1"
             >
-              {isCheckingOut ? <Activity className="animate-spin w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
-              Complete Sale
+              {isCheckingOut ? <Activity className="animate-spin w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
+              <span>Complete Sale</span>
             </button>
           </div>
         </div>
@@ -2149,6 +2166,23 @@ const OrdersView = ({
                             <Plus className="w-4 h-4" />
                             Add Product
                           </button>
+                        </div>
+
+                        <div className="border-t border-stone-100 pt-4 mt-4 flex flex-col gap-1">
+                          <div className="flex justify-between text-[10px] font-black text-stone-400 uppercase tracking-widest">
+                            <span>Subtotal</span>
+                            <span>₱{order.total + (order.discount || 0)}</span>
+                          </div>
+                          {order.discount > 0 && (
+                            <div className="flex justify-between text-[10px] font-black text-red-400 uppercase tracking-widest">
+                              <span>Discount</span>
+                              <span>-₱{order.discount}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between text-sm font-black text-stone-900">
+                            <span>Total</span>
+                            <span>₱{order.total}</span>
+                          </div>
                         </div>
                       </div>
                     </motion.div>
