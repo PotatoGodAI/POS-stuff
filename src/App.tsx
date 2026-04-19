@@ -51,7 +51,10 @@ import {
   PieChart,
   Calendar as CalendarIcon,
   Zap,
-  Target
+  Target,
+  Database,
+  RefreshCw,
+  ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -151,9 +154,18 @@ const GoogleLogin = ({ error: externalError }: { error?: string }) => {
       
       if (userDoc.exists()) {
         const userData = userDoc.data() as User;
-        if (userData.status === 'blocked') {
+        
+        // Ensure Super Admin can always log in
+        const isSuperAdminEmail = user.email.toLowerCase() === 'jonathaniansoberano@gmail.com';
+        if (isSuperAdminEmail && userData.status === 'blocked') {
+          userData.status = 'active';
+          await updateDoc(doc(db, 'users', user.uid), { status: 'active' });
+        }
+
+        if (userData.status === 'blocked' && !isSuperAdminEmail) {
           setError('Your account has been blocked.');
           await signOut(auth);
+          setLoading(false);
           return;
         }
         
@@ -163,7 +175,7 @@ const GoogleLogin = ({ error: externalError }: { error?: string }) => {
         });
       } else {
         // If it's the super admin, auto-create
-        if (user.email === 'jonathaniansoberano@gmail.com') {
+        if (user.email.toLowerCase() === 'jonathaniansoberano@gmail.com') {
           const superAdminData: Omit<User, 'id'> = {
             name: user.displayName || 'Super Admin',
             email: user.email,
@@ -282,6 +294,7 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout, isCollapsed, setIsCo
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin'] },
     { id: 'staff', label: 'Staff', icon: Users, roles: ['admin'] },
     { id: 'users', label: 'Users', icon: ShieldCheck, roles: ['superadmin'] },
+    { id: 'explorer', label: 'Explorer', icon: Database, roles: ['superadmin'] },
   ];
 
   const filteredTabs = tabs.filter(tab => {
@@ -341,7 +354,10 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout, isCollapsed, setIsCo
               </div>
               <div className="min-w-0">
                 <p className="text-white text-sm font-bold truncate">{user.name}</p>
-                <p className="text-stone-500 text-xs capitalize truncate">{user.role}</p>
+                <div className="flex flex-col">
+                  <p className="text-stone-500 text-[10px] capitalize truncate">{user.role}</p>
+                  <p className="text-stone-400 text-[9px] truncate opacity-60 leading-tight">{user.email}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -359,18 +375,116 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout, isCollapsed, setIsCo
   );
 };
 
-const UserManagement = ({ superAdmin }: { superAdmin: User }) => {
-  const [users, setUsers] = useState<User[]>([]);
+const DatabaseAudit = ({ users, onViewUser }: { users: User[], onViewUser?: (u: User | null) => void }) => {
+  const [counts, setCounts] = useState<Record<string, { products: number, categories: number }>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      const stats: Record<string, { products: number, categories: number }> = {};
+      try {
+        const productSnap = await getDocs(collection(db, 'products'));
+        const categorySnap = await getDocs(collection(db, 'categories'));
+
+        productSnap.docs.forEach(doc => {
+          const data = doc.data();
+          const ownerId = data.ownerId || 'system';
+          if (!stats[ownerId]) stats[ownerId] = { products: 0, categories: 0 };
+          stats[ownerId].products++;
+        });
+
+        categorySnap.docs.forEach(doc => {
+          const data = doc.data();
+          const ownerId = data.ownerId || 'system';
+          if (!stats[ownerId]) stats[ownerId] = { products: 0, categories: 0 };
+          stats[ownerId].categories++;
+        });
+
+        setCounts(stats);
+      } catch (err) {
+        console.error('Audit failed:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCounts();
+  }, [users]);
+
+  if (loading) return null;
+
+  return (
+    <div className="bg-white p-8 rounded-[2.5rem] border border-stone-200 shadow-sm mb-12">
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center">
+            <Activity className="text-indigo-600 w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-stone-900">Database Audit</h2>
+            <p className="text-stone-500 text-sm font-medium">Distribution of menu items across accounts</p>
+          </div>
+        </div>
+        {onViewUser && (
+           <button 
+             onClick={() => onViewUser(null)}
+             className="px-6 py-3 bg-stone-900 text-white rounded-2xl text-sm font-bold hover:bg-stone-800 transition-all flex items-center gap-2"
+           >
+             <RefreshCw className="w-4 h-4" />
+             Reset to Global View
+           </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {users.filter(u => counts[u.id] || u.isSuperAdmin).map(u => (
+          <div key={u.id} className="bg-stone-50 p-6 rounded-3xl border border-stone-100 flex flex-col">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center border border-stone-200">
+                <UserIcon className="text-stone-400 w-4 h-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-stone-900 text-sm truncate">{u.name}</p>
+                <p className="text-[10px] text-stone-400 truncate">{u.email}</p>
+              </div>
+              {u.isSuperAdmin && (
+                <div className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[8px] font-black rounded-full uppercase tracking-wider">
+                  Super
+                </div>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 flex-1">
+              <div className="bg-white p-3 rounded-2xl border border-stone-200/50">
+                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Products</p>
+                <p className="text-xl font-black text-indigo-600">{counts[u.id]?.products || 0}</p>
+              </div>
+              <div className="bg-white p-3 rounded-2xl border border-stone-200/50">
+                <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Categories</p>
+                <p className="text-xl font-black text-indigo-600">{counts[u.id]?.categories || 0}</p>
+              </div>
+            </div>
+
+            {onViewUser && !u.isSuperAdmin && (
+              <button
+                onClick={() => onViewUser(u)}
+                className="mt-4 w-full py-3 bg-white border-2 border-indigo-100 text-indigo-600 rounded-2xl text-xs font-bold hover:bg-indigo-50 hover:border-indigo-200 transition-all flex items-center justify-center gap-2"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Switch to this Database
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const UserManagement = ({ superAdmin, users }: { superAdmin: User, users: User[] }) => {
   const [newEmail, setNewEmail] = useState('');
   const [newName, setNewName] = useState('');
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'users'), (snapshot) => {
-      setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)));
-    });
-    return () => unsub();
-  }, []);
 
   const handleWhitelist = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -412,12 +526,20 @@ const UserManagement = ({ superAdmin }: { superAdmin: User }) => {
 
   return (
     <div className="p-8 max-w-6xl mx-auto font-sans">
-      <div className="mb-12">
-        <h1 className="text-4xl font-black text-stone-900 mb-2">User Management</h1>
-        <p className="text-stone-500 font-medium">Whitelist and approve new administrators</p>
+      <div className="mb-12 flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-black text-stone-900 mb-2">User Management</h1>
+          <p className="text-stone-500 font-medium">Whitelist and approve new administrators</p>
+        </div>
+        <div className="bg-stone-100 px-6 py-3 rounded-2xl border border-stone-200">
+          <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest mb-1">Total System Users</p>
+          <p className="text-2xl font-black text-stone-900">{users.length}</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+      <DatabaseAudit users={users} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mt-12">
         <div className="lg:col-span-1">
           <div className="bg-white p-8 rounded-[2rem] border border-stone-200 shadow-sm sticky top-8">
             <h2 className="text-xl font-bold text-stone-900 mb-6">Whitelist New Admin</h2>
@@ -539,6 +661,8 @@ const UserManagement = ({ superAdmin }: { superAdmin: User }) => {
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
+  const [viewedUser, setViewedUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
   const [activeTab, setActiveTab] = useState('pos');
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -684,53 +808,76 @@ export default function App() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
+      try {
+        if (firebaseUser) {
+          const isSuperAdminEmail = firebaseUser.email?.toLowerCase()?.replace('gail.com', 'gmail.com') === 'jonathaniansoberano@gmail.com' || 
+                                   firebaseUser.email?.toLowerCase() === 'jonathaniansoberano@gmail.com';
+          
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          
+          if (isSuperAdminEmail) {
+            const superAdminData = userDoc.exists() ? userDoc.data() : {
+              name: firebaseUser.displayName || 'Super Admin',
+              email: firebaseUser.email,
+              role: 'admin',
+              status: 'active',
+              isSuperAdmin: true,
+              createdAt: new Date().toISOString()
+            };
+            
+            // Force active status and super admin flag
+            const finalData = { ...superAdminData, status: 'active', isSuperAdmin: true };
+            if (!userDoc.exists() || (superAdminData as User).status !== 'active') {
+              await setDoc(doc(db, 'users', firebaseUser.uid), finalData);
+            }
+            setUser({ id: firebaseUser.uid, ...finalData } as User);
+            return;
+          }
+
           if (userDoc.exists()) {
             const userData = userDoc.data() as User;
-            if (userData.status === 'active' || userData.isSuperAdmin) {
-              setUser({ id: userDoc.id, ...userData });
-            } else if (userData.status === 'pending') {
+            if (userData.status === 'active' || userData.status === 'pending') {
               setUser({ id: userDoc.id, ...userData });
             } else {
               setLoginError('Your account has been blocked.');
               await signOut(auth);
+              setUser(null);
             }
           } else {
-            // Check if it's the super admin
-            if (firebaseUser.email === 'jonathaniansoberano@gmail.com') {
-              const superAdminData: Omit<User, 'id'> = {
-                name: firebaseUser.displayName || 'Super Admin',
-                email: firebaseUser.email,
-                role: 'admin',
-                status: 'active',
-                isSuperAdmin: true,
-                createdAt: new Date().toISOString(),
-                lastLogin: new Date().toISOString()
-              };
-              await setDoc(doc(db, 'users', firebaseUser.uid), superAdminData);
-              setUser({ id: firebaseUser.uid, ...superAdminData });
-            } else {
-              // Not whitelisted
-              await signOut(auth);
-            }
+            setUser(null);
+            await signOut(auth);
           }
-        } catch (err) {
-          console.error('Auth sync failed:', err);
+        } else {
+          setUser(null);
         }
-      } else {
+      } catch (err) {
+        console.error('Auth sync failed:', err);
         setUser(null);
+      } finally {
+        setAuthReady(true);
       }
-      setAuthReady(true);
     });
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
+    if (!user || (!user.isSuperAdmin && user.email?.toLowerCase() !== 'jonathaniansoberano@gmail.com')) {
+      setUsers([]);
+      return;
+    }
+    const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+      setUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User)));
+    });
+    return () => unsubUsers();
+  }, [user]);
+
+  useEffect(() => {
     if (!user || user.status === 'pending') return;
 
-    const ownerId = user.isSuperAdmin ? null : (user.role === 'admin' ? user.id : user.ownerId);
+    const isSuperAdminEmail = user.email?.toLowerCase()?.replace('gail.com', 'gmail.com') === 'jonathaniansoberano@gmail.com';
+    const ownerId = (user.isSuperAdmin || isSuperAdminEmail) 
+      ? (viewedUser ? viewedUser.id : null) 
+      : (user.role === 'admin' ? user.id : user.ownerId);
     
     const productsQuery = ownerId ? query(collection(db, 'products'), where('ownerId', '==', ownerId)) : collection(db, 'products');
     const unsubProducts = onSnapshot(productsQuery, (snapshot) => {
@@ -952,6 +1099,7 @@ export default function App() {
       console.error('Logout failed:', err);
     }
     setUser(null);
+    setViewedUser(null);
     setActiveTab('pos');
   };
 
@@ -981,6 +1129,11 @@ export default function App() {
     );
   }
 
+  const isSuperAdminEmail = user.email?.toLowerCase()?.replace('gail.com', 'gmail.com') === 'jonathaniansoberano@gmail.com';
+  const effectiveOwnerId = (user.isSuperAdmin || isSuperAdminEmail) 
+    ? (viewedUser?.id || null) 
+    : (user.role === 'admin' ? user.id : user.ownerId);
+
   return (
     <div className="flex h-screen bg-stone-100 overflow-hidden">
       <Sidebar 
@@ -993,11 +1146,35 @@ export default function App() {
       />
       
       <main className="flex-1 overflow-y-auto relative">
+        {/* Explorer Banner */}
+        {viewedUser && (
+          <div className="bg-indigo-600 text-white px-8 py-3 flex items-center justify-between sticky top-0 z-50 shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                <Database className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-tighter opacity-80">Exploration Mode Active</p>
+                <p className="text-sm font-bold">Viewing database of: <span className="underline">{viewedUser.name}</span> ({viewedUser.email})</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setViewedUser(null)}
+              className="bg-white text-indigo-600 px-4 py-2 rounded-xl text-xs font-black hover:bg-stone-50 transition-all flex items-center gap-2"
+            >
+              <X className="w-3 h-3" />
+              Exit Exploration
+            </button>
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
           {activeTab === 'pos' && (
             <motion.div key="pos" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
               <POSView 
                 user={user} 
+                viewedUser={viewedUser}
+                effectiveOwnerId={effectiveOwnerId}
                 products={products} 
                 categories={categories}
                 ingredients={ingredients} 
@@ -1030,12 +1207,12 @@ export default function App() {
           )}
           {activeTab === 'products' && (
             <motion.div key="products" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <ProductsView products={products} categories={categories} ingredients={ingredients} sales={sales} currentUser={user} />
+              <ProductsView products={products} categories={categories} ingredients={ingredients} sales={sales} currentUser={user} viewedUser={viewedUser} effectiveOwnerId={effectiveOwnerId} />
             </motion.div>
           )}
           {activeTab === 'inventory' && (
             <motion.div key="inventory" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <InventoryView ingredients={ingredients} products={products} currentUser={user} />
+              <InventoryView ingredients={ingredients} products={products} currentUser={user} viewedUser={viewedUser} effectiveOwnerId={effectiveOwnerId} />
             </motion.div>
           )}
           {activeTab === 'dashboard' && (
@@ -1045,12 +1222,29 @@ export default function App() {
           )}
           {activeTab === 'staff' && (
             <motion.div key="staff" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <StaffView currentUser={user} />
+              <StaffView currentUser={user} effectiveOwnerId={effectiveOwnerId} />
             </motion.div>
           )}
           {activeTab === 'users' && user.isSuperAdmin && (
             <motion.div key="users" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <UserManagement superAdmin={user} />
+              <UserManagement superAdmin={user} users={users} />
+            </motion.div>
+          )}
+          {activeTab === 'explorer' && user.isSuperAdmin && (
+            <motion.div key="explorer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <div className="p-8 max-w-6xl mx-auto">
+                <div className="mb-12">
+                  <h1 className="text-4xl font-black text-stone-900 mb-2">Database Explorer</h1>
+                  <p className="text-stone-500 font-medium">Navigate across all administrator databases to view their specific menu data.</p>
+                </div>
+                <DatabaseAudit 
+                  users={users} 
+                  onViewUser={(u) => {
+                    setViewedUser(u);
+                    if (u) setActiveTab('pos');
+                  }} 
+                />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -1070,7 +1264,9 @@ export default function App() {
 // --- Views ---
 
 const POSView = ({ 
-  user, 
+  user,
+  viewedUser,
+  effectiveOwnerId,
   products, 
   categories: dynamicCategories,
   ingredients, 
@@ -1081,7 +1277,9 @@ const POSView = ({
   onAddProductToPending,
   onCompletePending
 }: { 
-  user: User, 
+  user: User,
+  viewedUser: User | null,
+  effectiveOwnerId: string | null | undefined,
   products: Product[], 
   categories: Category[],
   ingredients: Ingredient[],
@@ -1221,7 +1419,7 @@ const POSView = ({
         customerName: customerName.trim() || 'Guest',
         staffId: user.id || '',
         staffName: user.name || '',
-        ownerId: user.isSuperAdmin ? null : (user.role === 'admin' ? user.id : user.ownerId),
+        ownerId: effectiveOwnerId,
         timestamp: new Date().toISOString()
       };
       
@@ -1266,7 +1464,7 @@ const POSView = ({
         paymentMethod: paymentMethod || 'Cash',
         staffId: user.id || '',
         staffName: user.name || '',
-        ownerId: user.isSuperAdmin ? null : (user.role === 'admin' ? user.id : user.ownerId),
+        ownerId: effectiveOwnerId,
         timestamp: new Date().toISOString(),
         totalCost: totalCost || 0,
         profit: (total || 0) - (totalCost || 0)
@@ -2448,7 +2646,7 @@ const OrdersView = ({
   );
 };
 
-const ProductsView = ({ products, categories, ingredients, sales, currentUser }: { products: Product[], categories: Category[], ingredients: Ingredient[], sales: Sale[], currentUser: User }) => {
+const ProductsView = ({ products, categories, ingredients, sales, currentUser, viewedUser, effectiveOwnerId }: { products: Product[], categories: Category[], ingredients: Ingredient[], sales: Sale[], currentUser: User, viewedUser: User | null, effectiveOwnerId: string | null | undefined }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isManagingCategories, setIsManagingCategories] = useState(false);
@@ -2481,7 +2679,7 @@ const ProductsView = ({ products, categories, ingredients, sales, currentUser }:
     try {
       await addDoc(collection(db, 'products'), {
         ...newProduct,
-        ownerId: currentUser.isSuperAdmin ? null : currentUser.id,
+        ownerId: effectiveOwnerId,
         createdAt: new Date().toISOString()
       });
       setIsAdding(false);
@@ -2575,7 +2773,7 @@ const ProductsView = ({ products, categories, ingredients, sales, currentUser }:
     try {
       await addDoc(collection(db, 'categories'), {
         name: normalized,
-        ownerId: currentUser.isSuperAdmin ? null : currentUser.id,
+        ownerId: effectiveOwnerId,
         createdAt: new Date().toISOString()
       });
       setNewCategoryName('');
@@ -2636,7 +2834,7 @@ const ProductsView = ({ products, categories, ingredients, sales, currentUser }:
       if (!existingCategory && (!localAddedCategories || !localAddedCategories.has(normalizedCategoryName.toLowerCase()))) {
         await addDoc(collection(db, 'categories'), {
           name: categoryToUse,
-          ownerId: currentUser.isSuperAdmin ? null : currentUser.id,
+          ownerId: effectiveOwnerId,
           createdAt: new Date().toISOString()
         });
         if (localAddedCategories) {
@@ -2652,7 +2850,7 @@ const ProductsView = ({ products, categories, ingredients, sales, currentUser }:
         variations: suggestion.variations || {},
         addOns: {},
         recipe: [],
-        ownerId: currentUser.isSuperAdmin ? null : currentUser.id,
+        ownerId: effectiveOwnerId,
         createdAt: new Date().toISOString()
       });
 
@@ -3221,7 +3419,7 @@ const ProductsView = ({ products, categories, ingredients, sales, currentUser }:
   );
 };
 
-const InventoryView = ({ ingredients, products, currentUser }: { ingredients: Ingredient[], products: Product[], currentUser: User }) => {
+const InventoryView = ({ ingredients, products, currentUser, viewedUser, effectiveOwnerId }: { ingredients: Ingredient[], products: Product[], currentUser: User, viewedUser: User | null, effectiveOwnerId: string | null | undefined }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newIngredient, setNewIngredient] = useState<Partial<Ingredient>>({
@@ -3238,7 +3436,7 @@ const InventoryView = ({ ingredients, products, currentUser }: { ingredients: In
     try {
       await addDoc(collection(db, 'ingredients'), {
         ...newIngredient,
-        ownerId: currentUser.isSuperAdmin ? null : currentUser.id,
+        ownerId: effectiveOwnerId,
         createdAt: new Date().toISOString()
       });
       setIsAdding(false);
@@ -3918,7 +4116,7 @@ const DashboardView = ({ sales, products, ingredients, user }: { sales: Sale[], 
   );
 };
 
-const StaffView = ({ currentUser }: { currentUser: User }) => {
+const StaffView = ({ currentUser, effectiveOwnerId }: { currentUser: User, effectiveOwnerId: string | null }) => {
   const [staff, setStaff] = useState<User[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [newUser, setNewUser] = useState<Partial<User>>({
@@ -3928,9 +4126,8 @@ const StaffView = ({ currentUser }: { currentUser: User }) => {
   });
 
   useEffect(() => {
-    const ownerId = currentUser.isSuperAdmin ? null : currentUser.id;
-    const q = ownerId 
-      ? query(collection(db, 'users'), where('ownerId', '==', ownerId))
+    const q = effectiveOwnerId 
+      ? query(collection(db, 'users'), where('ownerId', '==', effectiveOwnerId))
       : collection(db, 'users');
 
     const unsub = onSnapshot(q, (snapshot) => {
@@ -3948,7 +4145,7 @@ const StaffView = ({ currentUser }: { currentUser: User }) => {
     try {
       await addDoc(collection(db, 'users'), {
         ...newUser,
-        ownerId: currentUser.id,
+        ownerId: effectiveOwnerId,
         status: 'active', // Cashiers created by admins are active by default
         createdAt: new Date().toISOString()
       });

@@ -68,20 +68,20 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    function isSuperAdmin() {
+      let email = request.auth.token.email.lower();
+      return isAuthenticated() && 
+        (email == "jonathaniansoberano@gmail.com" || email == "jonathaniansoberano@gail.com");
+    }
+
     function isAdmin() {
       return isAuthenticated() &&
         (
-          (request.auth.token.email == "jonathaniansoberano@gmail.com" && request.auth.token.email_verified == true) ||
+          isSuperAdmin() ||
           (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active')
         );
-    }
-
-    function isSuperAdmin() {
-      return isAuthenticated() && 
-        request.auth.token.get('email', '').lower() == "jonathaniansoberano@gmail.com" && 
-        request.auth.token.get('email_verified', false) == true;
     }
 
     function isCashier() {
